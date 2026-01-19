@@ -49,7 +49,7 @@ Xây dựng hệ thống marketplace đồ cũ hoàn chỉnh với:
 
 ### 2.1 Project Information
 - **Project Name**: OldGoods Marketplace
-- **Technology Stack**: Django, PostgreSQL, Django Channels, Redis
+- **Technology Stack**: FastAPI, SQLAlchemy, Alembic, PostgreSQL, (Redis optional), WebSocket
 - **Team Size**: 3-5 members
 - **Project Duration**: 8-10 weeks
 - **Development Methodology**: Agile/Scrum (4 Sprints)
@@ -90,7 +90,7 @@ OldGoods Marketplace Project
 - Project Plan
 
 #### Phase 2: Sprint 1 - Foundation
-- Django Project Setup
+- FastAPI Project Setup
 - Database Models (User, Profile, Category, Listing)
 - Authentication API (Register, Login, Logout)
 - Listing CRUD API
@@ -104,9 +104,9 @@ OldGoods Marketplace Project
 - Integration Tests
 
 #### Phase 4: Sprint 3 - Real-time Chat
-- Django Channels Setup
+- FastAPI WebSocket Setup
 - WebSocket Implementation
-- Chat Models & Consumers
+- Chat Models & WebSocket handlers
 - Message History
 - WebSocket Tests
 
@@ -132,9 +132,9 @@ OldGoods Marketplace Project
 
 #### Week 1: Setup & Core Models
 **Days 1-2**: Project Setup
-- [ ] Initialize Django project
+- [ ] Initialize FastAPI project
 - [ ] Setup PostgreSQL database
-- [ ] Configure Django settings
+- [ ] Configure app settings (Pydantic Settings)
 - [ ] Setup Git repository
 - [ ] Create project structure
 
@@ -142,12 +142,12 @@ OldGoods Marketplace Project
 - [ ] Create User và Profile models
 - [ ] Create Category model
 - [ ] Create Listing và ListingImage models
-- [ ] Create database migrations
+- [ ] Create Alembic migrations
 - [ ] Test models và relationships
 
 **Days 6-7**: Authentication
 - [ ] Implement Register API
-- [ ] Implement Login API (JWT)
+- [ ] Implement Login API (JWT - python-jose)
 - [ ] Implement Logout API
 - [ ] Write unit tests
 - [ ] Write integration tests
@@ -174,7 +174,7 @@ OldGoods Marketplace Project
 - [ ] Plan Sprint 2
 
 **Deliverables**:
-- ✅ Django project setup
+- ✅ FastAPI project setup
 - ✅ Database models và migrations
 - ✅ Authentication API
 - ✅ Listing CRUD API
@@ -233,19 +233,18 @@ OldGoods Marketplace Project
 
 ### 4.3 Sprint 3: Real-time Chat (2-3 weeks)
 
-#### Week 5: Django Channels Setup
-**Days 23-25**: Channels Configuration
-- [ ] Install và configure Django Channels
-- [ ] Setup Redis channel layer
-- [ ] Create WebSocket routing
-- [ ] Create ChatConsumer
+#### Week 5: FastAPI WebSocket Setup
+**Days 23-25**: WebSocket Configuration
+- [ ] Implement FastAPI WebSocket endpoint (`/ws/chat`)
+- [ ] WebSocket authentication (JWT)
+- [ ] Broadcast strategy (Redis pubsub optional)
 - [ ] Test WebSocket connection
 
 **Days 26-27**: Chat Models
 - [ ] Create Conversation model
 - [ ] Create ConversationMember model
 - [ ] Create Message model
-- [ ] Create database migrations
+ - [ ] Create database migrations (Alembic)
 - [ ] Write model tests
 
 #### Week 6: WebSocket Implementation
@@ -276,7 +275,7 @@ OldGoods Marketplace Project
 - [ ] Plan Sprint 4
 
 **Deliverables**:
-- ✅ Django Channels setup
+- ✅ FastAPI WebSocket setup
 - ✅ WebSocket chat implementation
 - ✅ Chat models và API
 - ✅ Message history
@@ -384,8 +383,8 @@ OldGoods Marketplace Project
 #### Risk 1: WebSocket Implementation Complexity
 - **Probability**: Medium
 - **Impact**: High
-- **Mitigation**: 
-  - Research Django Channels documentation early
+-- **Mitigation**: 
+  - Research FastAPI WebSocket patterns early
   - Start with simple WebSocket implementation
   - Allocate extra time in Sprint 3
 - **Contingency**: Use polling as fallback (less ideal)
@@ -399,11 +398,11 @@ OldGoods Marketplace Project
   - Optimize queries
 - **Contingency**: Add caching layer (Redis)
 
-#### Risk 3: Team Members Not Familiar với Django Channels
+#### Risk 3: Team Members Not Familiar với FastAPI WebSocket
 - **Probability**: High
 - **Impact**: Medium
-- **Mitigation**:
-  - Training session before Sprint 3
+-- **Mitigation**:
+  - Training session before Sprint 3 (async/WebSocket)
   - Pair programming
   - Code reviews
 - **Contingency**: Allocate more time, seek external help
@@ -460,7 +459,7 @@ OldGoods Marketplace Project
 
 - **PostgreSQL**: Phải được setup trước Sprint 1
 - **Redis**: Phải được setup trước Sprint 3
-- **Django Channels**: Phải được research trước Sprint 3
+- **FastAPI WebSocket**: Phải được research trước Sprint 3
 - **Deployment Server**: Phải được setup trước Sprint 4
 
 ---

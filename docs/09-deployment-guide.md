@@ -30,7 +30,7 @@ Hướng dẫn này mô tả cách deploy hệ thống OldGoods Marketplace lên
 ### 1.2 Deployment Architecture
 
 ```
-Internet → Nginx → Gunicorn/Uvicorn → Django App
+Internet → Nginx → Uvicorn (ASGI) → FastAPI App
                               ↓
                          PostgreSQL
                               ↓
@@ -226,14 +226,8 @@ DB_PORT=5432
 ### 5.3 Run Migrations
 
 ```bash
-# Make migrations (if needed)
-python manage.py makemigrations
-
-# Apply migrations
-python manage.py migrate
-
-# Create superuser (optional)
-python manage.py createsuperuser
+# Apply migrations (Alembic)
+alembic upgrade head
 ```
 
 ---
@@ -244,51 +238,21 @@ python manage.py createsuperuser
 
 ```bash
 # Run development server
-python manage.py runserver
+uvicorn app.main:app --reload
 
 # Server sẽ chạy tại http://localhost:8000
 ```
 
-### 6.2 Production Server với Gunicorn
+### 6.2 Production Server với Uvicorn (ASGI)
 
-#### Install Gunicorn
+#### Install Uvicorn
 ```bash
-pip install gunicorn
+pip install uvicorn[standard]
 ```
 
-#### Run với Gunicorn
+#### Run với Uvicorn
 ```bash
-# Basic
-gunicorn oldgoods_marketplace.wsgi:application
-
-# With options
-gunicorn oldgoods_marketplace.wsgi:application \
-    --bind 0.0.0.0:8000 \
-    --workers 4 \
-    --timeout 120 \
-    --access-logfile - \
-    --error-logfile -
-```
-
-#### Gunicorn Configuration File
-
-Create `gunicorn_config.py`:
-```python
-bind = "127.0.0.1:8000"
-workers = 4
-worker_class = "sync"
-timeout = 120
-keepalive = 5
-max_requests = 1000
-max_requests_jitter = 100
-accesslog = "/var/log/gunicorn/access.log"
-errorlog = "/var/log/gunicorn/error.log"
-loglevel = "info"
-```
-
-Run với config file:
-```bash
-gunicorn -c gunicorn_config.py oldgoods_marketplace.wsgi:application
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
 ```
 
 ### 6.3 Systemd Service (Production)
@@ -296,7 +260,7 @@ gunicorn -c gunicorn_config.py oldgoods_marketplace.wsgi:application
 Create `/etc/systemd/system/oldgoods.service`:
 ```ini
 [Unit]
-Description=OldGoods Marketplace Gunicorn
+Description=OldGoods Marketplace Uvicorn
 After=network.target postgresql.service redis.service
 
 [Service]
@@ -304,9 +268,7 @@ User=www-data
 Group=www-data
 WorkingDirectory=/var/www/oldgoods
 Environment="PATH=/var/www/oldgoods/venv/bin"
-ExecStart=/var/www/oldgoods/venv/bin/gunicorn \
-    --config /var/www/oldgoods/gunicorn_config.py \
-    oldgoods_marketplace.wsgi:application
+ExecStart=/var/www/oldgoods/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 4
 
 Restart=always
 RestartSec=10
@@ -326,6 +288,9 @@ sudo systemctl status oldgoods
 ---
 
 ## 7. WebSocket Server Setup
+
+FastAPI chạy ASGI nên WebSocket được phục vụ **cùng** process/port với REST API (mặc định `:8000`).
+Redis là **optional**, dùng khi cần broadcast event giữa nhiều instance (pubsub).
 
 ### 7.1 Development (InMemoryChannelLayer)
 
@@ -400,8 +365,8 @@ WantedBy=multi-user.target
 ### 8.1 Collect Static Files
 
 ```bash
-# Collect static files
-python manage.py collectstatic --noinput
+# Collect static files (nếu có frontend/static build riêng)
+# FastAPI thường không cần bước này cho backend API-only
 
 # Static files sẽ được copy đến STATIC_ROOT
 ```
@@ -428,7 +393,7 @@ server {
         add_header Cache-Control "public";
     }
 
-    # Proxy to Gunicorn (HTTP)
+    # Proxy to FastAPI (HTTP)
     location / {
         proxy_pass http://127.0.0.1:8000;
         proxy_set_header Host $host;
@@ -555,19 +520,8 @@ services:
       - DB_PORT=5432
       - REDIS_URL=redis://redis:6379/0
 
-  asgi:
-    build: .
-    command: uvicorn oldgoods_marketplace.asgi:application --host 0.0.0.0 --port 8001
-    volumes:
-      - .:/app
-    ports:
-      - "8001:8001"
-    depends_on:
-      - db
-      - redis
-    environment:
-      - DB_HOST=db
-      - REDIS_URL=redis://redis:6379/0
+  # asgi:
+  #   Không cần service riêng cho WebSocket khi dùng FastAPI (ASGI) — WS chạy chung port với HTTP
 
 volumes:
   postgres_data:
@@ -584,18 +538,17 @@ FROM python:3.10-slim
 WORKDIR /app
 
 # Install dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY requirements-fastapi.txt .
+RUN pip install --no-cache-dir -r requirements-fastapi.txt
 
 # Copy project
 COPY . .
 
-# Collect static files
-RUN python manage.py collectstatic --noinput
+## FastAPI API-only thường không cần collectstatic ở backend
 
 EXPOSE 8000
 
-CMD ["gunicorn", "oldgoods_marketplace.wsgi:application", "--bind", "0.0.0.0:8000"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
 ### 10.3 Run với Docker
@@ -604,11 +557,8 @@ CMD ["gunicorn", "oldgoods_marketplace.wsgi:application", "--bind", "0.0.0.0:800
 # Build và start
 docker-compose up -d
 
-# Run migrations
-docker-compose exec web python manage.py migrate
-
-# Create superuser
-docker-compose exec web python manage.py createsuperuser
+# Run migrations (Alembic)
+docker-compose exec web alembic upgrade head
 
 # View logs
 docker-compose logs -f
@@ -621,7 +571,7 @@ docker-compose logs -f
 ### 11.1 Common Issues
 
 #### Database Connection Error
-**Error**: `django.db.utils.OperationalError: could not connect to server`
+**Error**: `psycopg2.OperationalError: could not connect to server`
 
 **Solution**:
 - Check PostgreSQL is running: `sudo systemctl status postgresql`
@@ -629,10 +579,10 @@ docker-compose logs -f
 - Check firewall rules
 
 #### Static Files Not Found
-**Error**: `404 Not Found` for static files
+**Error**: `404 Not Found` for static files (nếu có frontend/static tách rời)
 
 **Solution**:
-- Run `python manage.py collectstatic`
+- FastAPI backend API-only: bỏ qua `collectstatic` (frontend/static build tách riêng nếu có)
 - Check `STATIC_ROOT` và `STATIC_URL` in settings
 - Check Nginx config for static files location
 
@@ -658,9 +608,6 @@ sudo chmod -R 775 /var/www/oldgoods/media
 
 #### Application Logs
 ```bash
-# Gunicorn logs
-tail -f /var/log/gunicorn/error.log
-
 # Systemd logs
 sudo journalctl -u oldgoods -f
 ```
@@ -684,7 +631,7 @@ sudo tail -f /var/log/nginx/error.log
 
 #### Check Application
 ```bash
-curl http://localhost:8000/api/v1/categories/
+curl http://localhost:8000/health
 ```
 
 #### Check Database
@@ -786,9 +733,9 @@ psql -U oldgoods_user -d oldgoods_db -c "SELECT pg_size_pretty(pg_database_size(
 
 ## 14. References
 
-- Django Deployment: https://docs.djangoproject.com/en/stable/howto/deployment/
-- Gunicorn Documentation: https://docs.gunicorn.org/
-- Django Channels Deployment: https://channels.readthedocs.io/en/stable/deploying.html
+- FastAPI Deployment: https://fastapi.tiangolo.com/deployment/
+- Uvicorn Documentation: https://www.uvicorn.org/
+- Alembic Documentation: https://alembic.sqlalchemy.org/
 - Nginx Configuration: https://nginx.org/en/docs/
 
 ---

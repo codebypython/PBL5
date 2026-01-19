@@ -2,6 +2,9 @@
 
 Hệ thống marketplace đồ cũ cho sinh viên và cư dân trong khu vực.
 
+> **Chốt hướng thiết kế**: FastAPI + SQLAlchemy + Alembic + PostgreSQL + WebSocket.  
+> Xem quyết định kiến trúc tại `docs/00-architecture-decision.md`.
+
 ## Tính năng
 
 - **Authentication**: Đăng ký, đăng nhập với JWT
@@ -13,12 +16,14 @@ Hệ thống marketplace đồ cũ cho sinh viên và cư dân trong khu vực.
 
 ## Công nghệ
 
-- **Backend**: Django 4.2+, Django REST Framework
+- **Backend**: FastAPI
+- **ORM**: SQLAlchemy
+- **Migrations**: Alembic
 - **Database**: PostgreSQL 12+
-- **WebSocket**: Django Channels với Redis
-- **Authentication**: JWT (djangorestframework-simplejwt)
+- **Realtime**: FastAPI WebSocket
+- **Authentication**: JWT (python-jose + passlib/bcrypt)
 
-## Cài đặt
+## Cài đặt (hướng FastAPI)
 
 ### Yêu cầu
 
@@ -42,7 +47,7 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 3. Install dependencies:
 ```bash
-pip install -r requirements.txt
+pip install -r requirements-fastapi.txt
 ```
 
 4. Setup environment variables:
@@ -56,35 +61,30 @@ cp .env.example .env
 # Create PostgreSQL database
 createdb oldgoods_db
 
-# Run migrations
-python manage.py migrate
-
-# Create superuser
-python manage.py createsuperuser
+# Run migrations (Alembic)
+alembic upgrade head
 ```
 
 6. Run development server:
 ```bash
-python manage.py runserver
+uvicorn app.main:app --reload
 ```
 
-## Cấu trúc Dự án
+## Cấu trúc Dự án (tóm tắt)
 
 ```
-oldgoods_marketplace/
-├── accounts/          # Authentication & User Management
-├── listings/          # Product Listings
-├── chat/             # Real-time Chat (WebSocket)
-├── deals/            # Offers & Deals
-├── moderation/       # Reports & Blocks
-├── admin_panel/      # Admin Moderation
-├── core/             # Shared Utilities
-└── oldgoods_marketplace/  # Project Settings
+app/
+├── main.py                 # FastAPI app
+├── core/                   # config, security, deps
+└── database/
+    ├── session.py          # SQLAlchemy session
+    └── models/             # ORM models
+alembic/                    # migrations
 ```
 
 ## API Documentation
 
-API base URL: `http://localhost:8000/api/v1/`
+API base URL: `http://localhost:8000/` (docs: `/docs`)
 
 Xem chi tiết trong [API Specification](docs/07-api-spec.md)
 
@@ -97,10 +97,15 @@ Tất cả tài liệu dự án nằm trong thư mục `docs/`:
 - [NFR](docs/03-nfr.md)
 - [SAD](docs/04-sad-architecture-4+1.md)
 - [DB Design](docs/06-db-design.md)
+- [DB Design (SQLAlchemy - tài liệu chính)](docs/06-db-design-sqlalchemy.md)
 - [API Spec](docs/07-api-spec.md)
 - [Test Plan](docs/08-test-plan.md)
 - [Deployment Guide](docs/09-deployment-guide.md)
 - [Project Plan](docs/10-project-plan.md)
+
+## FastAPI README
+
+Xem hướng dẫn chi tiết setup FastAPI tại `README-FASTAPI.md`.
 
 ## Testing
 

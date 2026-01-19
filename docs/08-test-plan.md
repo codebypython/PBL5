@@ -33,6 +33,8 @@ Test plan bao gồm:
 - Security tests cho authentication và authorization
 - Performance tests cho API response times
 
+> **Tech stack áp dụng cho Test Plan**: FastAPI + SQLAlchemy + Alembic + PostgreSQL (+ Redis optional cho realtime).
+
 ### 1.3 Objectives
 - Đảm bảo tất cả use cases hoạt động đúng
 - Đảm bảo code quality và reliability

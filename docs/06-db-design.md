@@ -22,7 +22,12 @@
 ## 1. Introduction
 
 ### 1.1 Purpose
-Tài liệu này mô tả thiết kế database cho hệ thống OldGoods Marketplace, bao gồm ERD, data dictionary, indexes, và Django ORM mapping.
+Tài liệu này mô tả thiết kế database cho hệ thống OldGoods Marketplace.
+
+> **Lưu ý quan trọng (thống nhất hướng thiết kế)**  
+> Dự án đã chốt hướng triển khai **FastAPI + SQLAlchemy + Alembic + PostgreSQL** (xem `docs/00-architecture-decision.md`).  
+> Vì vậy, tài liệu DB **chính** cần dùng là: `docs/06-db-design-sqlalchemy.md`.  
+> Tài liệu này được giữ lại như một bản mô tả tổng quan/legacy theo hướng Django ORM, nhằm tham khảo.
 
 ### 1.2 Database Overview
 - **Database System**: PostgreSQL 12+
@@ -596,10 +601,12 @@ class Listing(BaseModel):
 3. Create indexes
 4. Create foreign keys
 
-### 6.2 Django Migrations
-- Sử dụng Django's migration system (`python manage.py makemigrations`)
-- Migrations được version control
-- Migration files: `app_name/migrations/0001_initial.py`, etc.
+### 6.2 Migration Notes (Hướng chốt)
+
+Hướng chốt của dự án sử dụng **Alembic** cho migrations (xem `docs/06-db-design-sqlalchemy.md`):
+- `alembic revision --autogenerate -m "..."` để tạo migration
+- `alembic upgrade head` để apply
+- `alembic downgrade -1` để rollback
 
 ### 6.3 Migration Best Practices
 - **Never edit existing migrations**: Tạo migration mới để thay đổi

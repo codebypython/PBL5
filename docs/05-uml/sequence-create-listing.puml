@@ -3,7 +3,7 @@
 actor User as user
 participant "Web Client" as client
 participant "API Gateway\n(Nginx)" as nginx
-participant "Django View\n(ListingViewSet)" as view
+participant "FastAPI Endpoint\n(/listings)" as view
 participant "ListingService" as service
 participant "FileStorage" as storage
 participant "Database\n(PostgreSQL)" as db

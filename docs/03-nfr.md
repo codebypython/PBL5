@@ -565,6 +565,17 @@ Mỗi yêu cầu được mô tả theo format:
 - Search performance: Monitor query execution time
 - WebSocket latency: Monitor message delivery time
 
+---
+
+## 11. Tech Stack Alignment (Chốt hướng)
+
+Tài liệu NFR này được áp dụng cho stack đã chốt:
+- **FastAPI** (REST + WebSocket)
+- **SQLAlchemy ORM**
+- **Alembic migrations**
+- **PostgreSQL** (ORDB)
+- **Redis** (optional cho pubsub/caching)
+
 ### 10.2 Security Metrics
 - Password hash verification: Check database
 - JWT token validation: Test với invalid tokens

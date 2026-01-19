@@ -33,7 +33,7 @@ OldGoods Marketplace là một hệ thống web cho phép sinh viên và cư dâ
 ### 2.1 Sprint 1: Foundation
 **Thời gian**: [Ngày] - [Ngày]  
 **Kết quả**:
-- ✅ Django project setup
+- ✅ FastAPI project setup
 - ✅ Database models (User, Profile, Category, Listing)
 - ✅ Authentication API
 - ✅ Listing CRUD API
@@ -61,7 +61,7 @@ OldGoods Marketplace là một hệ thống web cho phép sinh viên và cư dâ
 ### 2.3 Sprint 3: Real-time Chat
 **Thời gian**: [Ngày] - [Ngày]  
 **Kết quả**:
-- ✅ Django Channels setup
+- ✅ FastAPI WebSocket setup
 - ✅ WebSocket chat implementation
 - ✅ Message persistence
 - ✅ Chat API endpoints
@@ -179,9 +179,9 @@ OldGoods Marketplace là một hệ thống web cho phép sinh viên và cư dâ
 - ✅ Separation of Concerns
 
 ### 4.2 Technology Stack
-- ✅ Django 4.2+
-- ✅ Django REST Framework
-- ✅ Django Channels
+- ✅ FastAPI
+- ✅ SQLAlchemy ORM
+- ✅ Alembic migrations
 - ✅ PostgreSQL 12+
 - ✅ Redis (Channel Layer)
 - ✅ JWT Authentication
@@ -273,7 +273,7 @@ OldGoods Marketplace là một hệ thống web cho phép sinh viên và cư dâ
 - **Database**: PostgreSQL [Version]
 - **Redis**: [Version]
 - **Web Server**: Nginx [Version]
-- **Application Server**: Gunicorn/Uvicorn
+- **Application Server**: Uvicorn (ASGI)
 
 ### 7.3 URLs
 - **API Base URL**: [URL]

@@ -11,10 +11,11 @@
 ## 1. Tổng quan Sprint
 
 ### 1.1 Mục tiêu Sprint
-- Setup Django project và PostgreSQL database
+- Setup FastAPI project và PostgreSQL database
+- Setup SQLAlchemy models + Alembic migrations
 - Implement Authentication API (Register, Login, Logout)
 - Implement Listing CRUD API
-- Tạo database models và migrations
+- Tạo database models và migrations (Alembic)
 - Viết basic tests
 
 ### 1.2 Kết quả Tổng quan
@@ -28,7 +29,7 @@
 ## 2. Công việc Đã Hoàn thành
 
 ### 2.1 Project Setup
-- [ ] Django project được khởi tạo
+- [ ] FastAPI project được khởi tạo
 - [ ] PostgreSQL database được setup
 - [ ] Virtual environment được tạo
 - [ ] Dependencies được install

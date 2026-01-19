@@ -173,7 +173,7 @@ Một feature được coi là "Done" khi:
 - Người dùng có trình duyệt web hiện đại (Chrome, Firefox, Safari, Edge)
 - Hình ảnh upload có dung lượng hợp lý (< 5MB mỗi ảnh)
 - PostgreSQL database có thể truy cập từ server
-- Redis có sẵn cho Django Channels (hoặc sử dụng in-memory channel layer cho development)
+- Redis là tùy chọn (cần khi scale realtime broadcast/pubsub hoặc caching)
 
 ## 8. Risks & Mitigation
 
@@ -186,7 +186,7 @@ Một feature được coi là "Done" khi:
 ### 8.2 Project Risks
 - **Risk**: Không đủ thời gian để hoàn thành tất cả features
   - **Mitigation**: Ưu tiên MVP features, loại bỏ nice-to-have
-- **Risk**: Team members không quen với Django Channels
+- **Risk**: Team members không quen với FastAPI WebSocket và async patterns
   - **Mitigation**: Training session, documentation, code review
 
 ## 9. Timeline Overview
@@ -198,7 +198,7 @@ Một feature được coi là "Done" khi:
 
 ## 10. References
 
-- Django Documentation: https://docs.djangoproject.com/
-- Django REST Framework: https://www.django-rest-framework.org/
-- Django Channels: https://channels.readthedocs.io/
+- FastAPI Documentation: https://fastapi.tiangolo.com/
+- SQLAlchemy Documentation: https://docs.sqlalchemy.org/
+- Alembic Documentation: https://alembic.sqlalchemy.org/
 - PostgreSQL Documentation: https://www.postgresql.org/docs/

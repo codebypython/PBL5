@@ -3,6 +3,7 @@
 
 **Version**: 1.0  
 **Date**: 2024  
+**Backend**: FastAPI + SQLAlchemy (ORM) + Alembic (migrations)  
 **Base URL**: `https://api.oldgoods.example.com/api/v1` (production)  
 **Base URL**: `http://localhost:8000/api/v1` (development)
 
@@ -22,7 +23,7 @@
 ## 1. Introduction
 
 ### 1.1 API Overview
-OldGoods Marketplace API cung cấp REST API cho CRUD operations và WebSocket API cho realtime chat.
+OldGoods Marketplace API cung cấp REST API cho CRUD operations (FastAPI routers) và WebSocket API cho realtime chat (FastAPI WebSocket).
 
 ### 1.2 API Versioning
 - Current version: `v1`
@@ -36,7 +37,7 @@ OldGoods Marketplace API cung cấp REST API cho CRUD operations và WebSocket A
 
 ### 1.4 Authentication
 - REST API: JWT Bearer Token
-- WebSocket: JWT Token trong query string hoặc header
+- WebSocket: JWT Token trong query string (hoặc header nếu client hỗ trợ)
 
 ---
 
@@ -1196,8 +1197,9 @@ curl -X POST \
 
 ## 8. References
 
-- Django REST Framework: https://www.django-rest-framework.org/
-- Django Channels: https://channels.readthedocs.io/
+- FastAPI: https://fastapi.tiangolo.com/
+- SQLAlchemy: https://docs.sqlalchemy.org/
+- Alembic: https://alembic.sqlalchemy.org/
 - JWT: https://jwt.io/
 - REST API Best Practices: https://restfulapi.net/
 

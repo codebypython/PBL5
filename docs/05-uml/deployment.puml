@@ -18,10 +18,8 @@ cloud "Cloud/Server" {
   }
   
   node "Application Server" as appServer {
-    component "Gunicorn\n(WSGI)" as gunicorn
-    component "Django Application" as django
     component "Uvicorn\n(ASGI)" as uvicorn
-    component "Django Channels" as channels
+    component "FastAPI Application" as api
   }
   
   node "Database Server" as dbServer {
@@ -32,7 +30,7 @@ cloud "Cloud/Server" {
   
   node "Cache Server" as cacheServer {
     component "Redis" as redis {
-      component "Channel Layer" as channelLayer
+      component "PubSub/Cache\n(Optional)" as channelLayer
     }
   }
   
@@ -46,19 +44,16 @@ cloud "Cloud/Server" {
 Internet --> nginx : "HTTPS (443)\nHTTP (80)"
 Internet --> nginx : "WebSocket (WS)"
 
-nginx --> gunicorn : "HTTP (8000)"
-nginx --> uvicorn : "WebSocket (8001)"
+nginx --> uvicorn : "HTTP+WebSocket (8000)"
 
-gunicorn --> django
-uvicorn --> channels
-channels --> django
+uvicorn --> api
 
-django --> postgres : "SQL (5432)"
-django --> redis : "Redis Protocol (6379)"
-django --> localStorage : "File I/O"
-django --> s3Storage : "S3 API\n(Optional)"
+api --> postgres : "SQL (5432)"
+api --> redis : "Redis Protocol (6379)\n(Optional)"
+api --> localStorage : "File I/O"
+api --> s3Storage : "S3 API\n(Optional)"
 
-channels --> channelLayer
+api --> channelLayer
 
 ' Notes
 note right of nginx
@@ -68,8 +63,7 @@ note right of nginx
 end note
 
 note right of appServer
-  - Gunicorn: HTTP requests
-  - Uvicorn: WebSocket connections
+  - Uvicorn: HTTP + WebSocket (ASGI)
   - Multiple workers for scaling
 end note
 
@@ -80,8 +74,8 @@ note right of dbServer
 end note
 
 note right of cacheServer
-  - Channel layer for WebSocket
-  - Can be used for caching
+  - PubSub for multi-instance broadcast (optional)
+  - Can be used for caching/rate limit (future)
 end note
 
 @enduml

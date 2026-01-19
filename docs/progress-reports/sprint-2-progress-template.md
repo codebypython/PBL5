@@ -265,14 +265,14 @@
 ## 8. Kế hoạch Sprint Tiếp theo
 
 ### 8.1 Sprint 3 Preview
-- Django Channels setup
-- WebSocket implementation
+- FastAPI WebSocket setup
+- WebSocket implementation (FastAPI)
 - Real-time chat functionality
 - Message history
 
 ### 8.2 Dependencies
 - Redis setup required
-- Django Channels research needed
+- FastAPI WebSocket + broadcast strategy research needed (Redis optional)
 
 ---
 

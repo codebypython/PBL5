@@ -11,7 +11,7 @@
 ## 1. Tổng quan Sprint
 
 ### 1.1 Mục tiêu Sprint
-- Setup Django Channels và Redis
+- Setup FastAPI WebSocket (và Redis optional)
 - Implement WebSocket chat functionality
 - Create chat models (Conversation, Message)
 - Implement message persistence
@@ -28,25 +28,23 @@
 
 ## 2. Công việc Đã Hoàn thành
 
-### 2.1 Django Channels Setup
-- [ ] Django Channels installation
-  - [ ] Install channels và channels-redis
-  - [ ] Update settings.py
-  - [ ] Configure ASGI application
+### 2.1 FastAPI WebSocket Setup
+- [ ] FastAPI WebSocket setup
+  - [ ] Define WebSocket endpoint (/ws/chat)
+  - [ ] Authentication for WebSocket (JWT)
+  - [ ] Connection lifecycle handling
 
-- [ ] Redis Setup
+- [ ] Redis Setup (Optional)
   - [ ] Redis server installation
-  - [ ] Channel layer configuration
+  - [ ] PubSub strategy for multi-instance broadcast
   - [ ] Test Redis connection
-  - [ ] Fallback to InMemoryChannelLayer (development)
 
 - [ ] WebSocket Routing
-  - [ ] Create routing.py
-  - [ ] Configure WebSocket URL patterns
+  - [ ] Define WS routes in FastAPI
   - [ ] Test WebSocket connection
 
 **Configuration**:
-- Channel layer: [Redis/InMemory]
+- PubSub: [Redis/None]
 - WebSocket endpoint: `/ws/chat/`
 
 ---

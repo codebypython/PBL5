@@ -3,7 +3,7 @@
 
 **Version**: 1.0  
 **Date**: 2024  
-**Architecture Style**: Layered Architecture + Event-Driven (WebSocket)
+**Architecture Style**: Layered Architecture + REST API + WebSocket (Realtime)
 
 ---
 
@@ -56,7 +56,7 @@ Tài liệu bao gồm:
 #### 2.1.3 Realtime Communication
 - **Goal**: Chat realtime với WebSocket
 - **Rationale**: Yêu cầu chính của hệ thống
-- **Approach**: Django Channels với WebSocket support
+- **Approach**: FastAPI WebSocket (ASGI) cho realtime chat; Redis pubsub là tùy chọn khi scale multi-instance
 
 #### 2.1.4 Security
 - **Goal**: Bảo mật cơ bản cho user data và authentication
@@ -66,7 +66,9 @@ Tài liệu bao gồm:
 ### 2.2 Constraints
 
 #### 2.2.1 Technology Constraints
-- **Django**: Framework bắt buộc
+- **FastAPI**: Backend framework (API-first)
+- **SQLAlchemy**: ORM
+- **Alembic**: DB migrations
 - **PostgreSQL**: Database bắt buộc
 - **Python 3.10+**: Runtime requirement
 
@@ -153,7 +155,7 @@ Scenarios view mô tả các use case quan trọng nhất để "neo" các views
 **Architectural Concerns**:
 - **Logical**: Conversation entity, Message entity, relationships
 - **Process**: WebSocket connection → Message consumer → Database write → WebSocket broadcast
-- **Development**: ChatConsumer (Django Channels), Message model, WebSocket routing
+- **Development**: FastAPI WebSocket endpoint/handler, Message model (SQLAlchemy), WS routing
 - **Physical**: WebSocket server (ASGI) → Database server → Redis (channel layers)
 
 **Validation**: Kiến trúc phải hỗ trợ WebSocket, message persistence, và realtime delivery
@@ -426,25 +428,23 @@ Process view mô tả runtime behavior của hệ thống, bao gồm các proces
 
 Hệ thống chạy với các processes chính:
 
-1. **Web Server Process** (Gunicorn/Uvicorn)
-   - Handle HTTP requests
-   - Handle WebSocket connections
-   - Run Django application
+1. **Web Server Process** (Uvicorn - ASGI)
+   - Handle HTTP requests (REST API)
+   - Handle WebSocket connections (realtime chat)
+   - Run FastAPI application
 
 2. **Database Process** (PostgreSQL)
    - Store persistent data
    - Handle transactions
 
-3. **Channel Layer Process** (Redis)
-   - Manage WebSocket connections
-   - Route messages between consumers
+3. **Cache/PubSub (Optional)** (Redis)
+   - Broadcast events khi chạy nhiều instance
+   - Cache data / rate limit (tương lai)
 
 ### 5.2 HTTP Request Flow
 
 ```
-Client → Nginx (Reverse Proxy) → Gunicorn/Uvicorn → Django Application
-                                                      ↓
-                                              Django REST Framework
+Client → Nginx (Reverse Proxy) → Uvicorn (ASGI) → FastAPI Application
                                                       ↓
                                               Application Services
                                                       ↓
@@ -458,10 +458,10 @@ Client → Nginx (Reverse Proxy) → Gunicorn/Uvicorn → Django Application
 **Example: Create Listing Request**
 
 1. Client sends POST /api/listings/ với JSON data và images
-2. Nginx receives request và forward đến Gunicorn
-3. Django URL router routes đến ListingViewSet
-4. ViewSet validates request (authentication, permissions)
-5. ListingSerializer validates data
+2. Nginx receives request và forward đến Uvicorn
+3. FastAPI router routes đến endpoint
+4. Endpoint validates request (authentication, permissions)
+5. Pydantic schema validates data
 6. ListingService.create_listing() executes business logic
 7. FileStorageService.save_images() saves images
 8. Repository saves Listing và ListingImage records (transaction)
@@ -470,15 +470,15 @@ Client → Nginx (Reverse Proxy) → Gunicorn/Uvicorn → Django Application
 ### 5.3 WebSocket Message Flow
 
 ```
-Client (WebSocket) → ASGI Server → Django Channels → ChatConsumer
+Client (WebSocket) → ASGI Server (Uvicorn) → FastAPI WebSocket handler
                                                           ↓
                                                   ChatService
                                                           ↓
                                                   Database (Save Message)
                                                           ↓
-                                                  Channel Layer (Redis)
+                                                  Redis PubSub (Optional)
                                                           ↓
-                                                  Receiver's Consumer
+                                                  Receiver connection(s)
                                                           ↓
                                                   Client (WebSocket)
 ```
@@ -487,27 +487,27 @@ Client (WebSocket) → ASGI Server → Django Channels → ChatConsumer
 
 1. Client establishes WebSocket connection với authentication token
 2. Client sends message: `{"type": "send_message", "conversation_id": "...", "content": "..."}`
-3. ASGI server routes đến ChatConsumer
-4. ChatConsumer validates message và user permissions
+3. ASGI server routes đến WebSocket handler
+4. Handler validates message và user permissions
 5. ChatService.send_message() executes business logic
 6. Message saved to database (transaction)
-7. ChatConsumer broadcasts message qua channel layer
-8. Receiver's consumer receives message và sends to client
+7. Server broadcasts message (in-memory; Redis pubsub if multi-instance)
+8. Receiver connection receives message và sends to client
 9. Client receives message và updates UI
 
 ### 5.4 Concurrency Model
 
 #### 5.4.1 HTTP Requests
 - **Model**: Multi-threaded hoặc async (tùy server)
-- **Concurrency**: Gunicorn workers handle multiple requests
+- **Concurrency**: Uvicorn workers handle multiple requests
 - **Database**: Connection pooling để handle concurrent queries
 - **Stateless**: Mỗi request độc lập, không share state
 
 #### 5.4.2 WebSocket Connections
-- **Model**: Async (Django Channels)
+- **Model**: Async (FastAPI WebSocket)
 - **Concurrency**: Mỗi WebSocket connection là một async task
-- **Channel Layer**: Redis manages message routing
-- **Scalability**: Multiple server instances có thể share channel layer
+- **Broadcast**: Redis pubsub (optional) khi scale nhiều instance
+- **Scalability**: Multiple server instances có thể share Redis pubsub
 
 ### 5.5 Background Tasks
 
@@ -550,66 +550,18 @@ Hệ thống được tổ chức theo **Layered Architecture** với các layer
 
 ```
 oldgoods_marketplace/
-├── manage.py
-├── oldgoods_marketplace/          # Main project package
-│   ├── settings.py
-│   ├── urls.py
-│   ├── asgi.py                     # ASGI config for WebSocket
-│   ├── wsgi.py
-│   └── routing.py                  # WebSocket routing
-│
-├── accounts/                       # User management app
-│   ├── models.py                   # User, Profile
-│   ├── views.py                    # API views
-│   ├── serializers.py
-│   ├── urls.py
-│   └── admin.py
-│
-├── listings/                       # Product listings app
-│   ├── models.py                   # Listing, Category, ListingImage, Favorite
-│   ├── views.py                    # ListingViewSet
-│   ├── serializers.py
-│   ├── filters.py                  # Search filters
-│   ├── urls.py
-│   └── admin.py
-│
-├── chat/                           # Chat app (Django Channels)
-│   ├── models.py                   # Conversation, Message, ConversationMember
-│   ├── consumers.py                # ChatConsumer (WebSocket)
-│   ├── serializers.py
-│   └── routing.py                  # WebSocket routes
-│
-├── deals/                          # Offers & Deals app
-│   ├── models.py                   # Offer, Deal, Meetup
-│   ├── views.py                    # OfferViewSet, DealViewSet
-│   ├── serializers.py
-│   ├── services.py                 # OfferService, DealService
-│   ├── urls.py
-│   └── admin.py
-│
-├── moderation/                     # Reports & Blocks app
-│   ├── models.py                   # Report, Block
-│   ├── views.py
-│   ├── serializers.py
-│   ├── urls.py
-│   └── admin.py
-│
-├── admin_panel/                    # Admin moderation app
-│   ├── views.py                    # Admin views
-│   ├── serializers.py
-│   └── urls.py
-│
-├── core/                           # Shared utilities
-│   ├── permissions.py              # Custom permissions
-│   ├── pagination.py               # Custom pagination
-│   ├── filters.py                  # Shared filters
-│   ├── exceptions.py               # Custom exceptions
-│   └── utils.py                    # Helper functions
-│
-└── infrastructure/                 # External services
-    ├── storage.py                  # File storage (local/S3)
-    ├── email.py                    # Email notifications
-    └── cache.py                    # Caching utilities
+├── app/
+│   ├── main.py                      # FastAPI app (ASGI entry)
+│   ├── core/                        # config, security, dependencies
+│   └── database/
+│       ├── base.py                  # BaseModel (UUID, timestamps)
+│       ├── session.py               # SQLAlchemy session
+│       └── models/                  # ORM models (aggregates)
+├── alembic/                         # Alembic migrations
+│   └── versions/
+├── alembic.ini
+├── requirements-fastapi.txt
+└── docs/
 ```
 
 ### 6.3 Dependency Rules
@@ -627,27 +579,28 @@ oldgoods_marketplace/
 ### 6.4 Technology Stack
 
 **Backend Framework**:
-- Django 4.2+
-- Django REST Framework
-- Django Channels (WebSocket)
+- FastAPI
+- Uvicorn (ASGI)
 
 **Database**:
 - PostgreSQL 12+
-- Django ORM
+- SQLAlchemy ORM
+- Alembic migrations
 
 **Authentication**:
-- JWT (djangorestframework-simplejwt)
+- JWT (python-jose) + password hashing (passlib/bcrypt)
 
 **File Storage**:
-- Django FileField (local) hoặc django-storages (S3)
+- Local storage (MVP) hoặc S3-compatible (tùy chọn)
 
-**Channel Layer**:
-- Redis (production) hoặc InMemoryChannelLayer (development)
+**Realtime/Broadcast**:
+- FastAPI WebSocket
+- Redis pubsub (optional)
 
 **Testing**:
 - pytest
-- pytest-django
-- pytest-asyncio (cho WebSocket tests)
+- pytest-asyncio
+- httpx (FastAPI test client)
 
 ---
 
@@ -669,9 +622,9 @@ Physical view mô tả deployment architecture, hardware, và network topology.
     ┌─────────────┴─────────────┐
     │                           │
 ┌───┴────┐              ┌───────┴──────┐
-│ Django │              │   Redis      │
-│  App   │              │ (Channels)    │
-│(Gunicorn)             └──────────────┘
+│ FastAPI│              │   Redis      │
+│  App   │              │ (Optional)   │
+│(Uvicorn)             └──────────────┘
 └───┬────┘
     │
 ┌───┴──────────┐
@@ -686,15 +639,15 @@ Physical view mô tả deployment architecture, hardware, và network topology.
 - **Component**: Nginx (Reverse Proxy)
 - **Port**: 80 (HTTP), 443 (HTTPS)
 - **Role**: 
-  - Reverse proxy cho Django app
+  - Reverse proxy cho FastAPI app
   - Serve static files
   - SSL termination
 
 #### 7.2.2 Application Server
-- **Component**: Gunicorn/Uvicorn
+- **Component**: Uvicorn (ASGI)
 - **Port**: 8000 (internal)
 - **Role**: 
-  - Run Django application
+  - Run FastAPI application
   - Handle HTTP requests
   - Handle WebSocket connections (ASGI)
 
@@ -706,13 +659,12 @@ Physical view mô tả deployment architecture, hardware, và network topology.
   - Handle transactions
   - Provide ACID guarantees
 
-#### 7.2.4 Channel Layer
+#### 7.2.4 Cache/PubSub (Optional)
 - **Component**: Redis
 - **Port**: 6379
 - **Role**: 
-  - Manage WebSocket connections
-  - Route messages between consumers
-  - Support horizontal scaling
+  - PubSub cho multi-instance broadcast (realtime)
+  - Caching / rate limit (tùy chọn)
 
 ### 7.3 File Storage
 
@@ -728,8 +680,8 @@ Physical view mô tả deployment architecture, hardware, và network topology.
 
 **Development**:
 - Single server với tất cả components
-- SQLite hoặc PostgreSQL local
-- InMemoryChannelLayer (không cần Redis)
+- PostgreSQL local/Docker
+- Redis optional
 
 **Production**:
 - Separate servers cho database và Redis (nếu scale)
@@ -780,23 +732,22 @@ Physical view mô tả deployment architecture, hardware, và network topology.
 
 ---
 
-### 8.2 AD-002: Django Channels for WebSocket
+### 8.2 AD-002: FastAPI WebSocket for Realtime Chat
 
-**Decision**: Sử dụng Django Channels cho WebSocket support
+**Decision**: Sử dụng FastAPI WebSocket cho realtime chat
 
 **Rationale**:
-- Tích hợp tốt với Django
-- Support async/await
-- Channel layers hỗ trợ scaling
+- Native ASGI + async/await
+- Phù hợp API-first architecture
+- Có thể kết hợp Redis pubsub khi scale multi-instance
 
 **Alternatives Considered**:
-- Socket.io: Cần Node.js server riêng
-- Tornado: Không tích hợp với Django
+- Socket.io: cần gateway riêng, tăng complexity
+- Polling/long-polling: kém realtime, tốn tài nguyên
 
 **Consequences**:
-- Cần Redis cho channel layers
-- ASGI server required
-- Learning curve cho team
+- ASGI server required (Uvicorn)
+- Khi chạy nhiều instance cần broadcast strategy (Redis pubsub)
 
 ---
 
@@ -816,7 +767,7 @@ Physical view mô tả deployment architecture, hardware, và network topology.
 
 **Consequences**:
 - Cần setup PostgreSQL server
-- ORM migrations với Django
+- ORM migrations với Alembic
 
 ---
 
@@ -867,7 +818,7 @@ Physical view mô tả deployment architecture, hardware, và network topology.
 
 ### 9.2 Security
 - **Strategy**: Authentication, authorization, input validation
-- **Mechanisms**: JWT, password hashing, Django security middleware
+- **Mechanisms**: JWT, password hashing, input validation, CORS, rate limit (tùy chọn)
 
 ### 9.3 Reliability
 - **Strategy**: Error handling, transactions, logging
@@ -881,9 +832,9 @@ Physical view mô tả deployment architecture, hardware, và network topology.
 
 ## 10. References
 
-- Django Documentation: https://docs.djangoproject.com/
-- Django Channels: https://channels.readthedocs.io/
-- Django REST Framework: https://www.django-rest-framework.org/
+- FastAPI: https://fastapi.tiangolo.com/
+- SQLAlchemy: https://docs.sqlalchemy.org/
+- Alembic: https://alembic.sqlalchemy.org/
 - 4+1 Views: Philippe Kruchten, "Architectural Blueprints—The 4+1 View Model of Software Architecture"
 
 ---

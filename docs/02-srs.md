@@ -43,8 +43,9 @@ Hệ thống bao gồm:
 
 ### 1.4 References
 - Vision & Scope Document (01-vision-scope.md)
-- Django REST Framework Documentation
-- Django Channels Documentation
+- FastAPI Documentation
+- SQLAlchemy Documentation
+- Alembic Documentation
 
 ### 1.5 Overview
 Tài liệu được tổ chức theo cấu trúc use-case based, mô tả chi tiết từng chức năng của hệ thống.
@@ -55,10 +56,12 @@ Tài liệu được tổ chức theo cấu trúc use-case based, mô tả chi t
 
 ### 2.1 Product Perspective
 OldGoods là một web application độc lập, hoạt động theo mô hình client-server:
-- **Client**: Web browser (React/Vue hoặc Django templates)
-- **Server**: Django REST API + Django Channels (WebSocket)
+- **Client**: Web browser (frontend tách rời)
+- **Server**: FastAPI REST API + FastAPI WebSocket (chat realtime)
+- **ORM**: SQLAlchemy
+- **Migrations**: Alembic
 - **Database**: PostgreSQL
-- **Storage**: Local file system hoặc cloud storage (S3)
+- **Storage**: Local file system hoặc cloud storage (S3-compatible, tùy chọn)
 
 ### 2.2 Product Functions
 Hệ thống cung cấp các chức năng chính:
@@ -88,7 +91,7 @@ Hệ thống cung cấp các chức năng chính:
 ### 2.4 Operating Environment
 - **Server**: Linux/Windows server với Python 3.10+
 - **Database**: PostgreSQL 12+
-- **Web Server**: Gunicorn/Uvicorn với ASGI
+- **Web Server**: Uvicorn (ASGI) (production có thể chạy multiple workers)
 - **Client**: Modern web browsers (Chrome, Firefox, Safari, Edge)
 
 ### 2.5 Design and Implementation Constraints
@@ -99,7 +102,8 @@ Hệ thống cung cấp các chức năng chính:
 
 ### 2.6 Assumptions and Dependencies
 - Người dùng có Internet connection
-- PostgreSQL và Redis đã được cài đặt
+- PostgreSQL đã được cài đặt
+- Redis là tùy chọn (cần khi scale realtime broadcast)
 - Python 3.10+ đã được cài đặt
 
 ---
@@ -772,8 +776,8 @@ Hệ thống cung cấp các chức năng chính:
 
 ### 4.3 Software Interfaces
 - **Database**: PostgreSQL 12+
-- **Cache**: Redis (cho Django Channels)
-- **Web Server**: Gunicorn/Uvicorn
+- **Cache/PubSub**: Redis (optional)
+- **Web Server**: Uvicorn (ASGI)
 - **Reverse Proxy**: Nginx (production)
 
 ### 4.4 Communication Interfaces

@@ -11,8 +11,8 @@ package "API Gateway" {
 
 package "Application Layer" {
   package "Presentation" {
-    [REST API\n(Django REST Framework)] as restAPI
-    [WebSocket API\n(Django Channels)] as wsAPI
+    [REST API\n(FastAPI)] as restAPI
+    [WebSocket API\n(FastAPI WebSocket)] as wsAPI
   }
   
   package "Application Services" {
@@ -37,7 +37,7 @@ package "Domain Layer" {
 package "Infrastructure Layer" {
   [Database\n(PostgreSQL)] as db
   [File Storage\n(Local/S3)] as storage
-  [Channel Layer\n(Redis)] as redis
+  [Redis\n(Optional PubSub/Cache)] as redis
   [Email Service] as email
 }
 
