@@ -1,0 +1,61 @@
+@startuml Sequence Diagram - Send Chat Message (UC10)
+
+actor Buyer as buyer
+actor Seller as seller
+participant "Buyer Client\n(WebSocket)" as buyerClient
+participant "WebSocket Server\n(ASGI)" as server
+participant "ChatConsumer" as consumer
+participant "ChatService" as service
+participant "Database\n(PostgreSQL)" as db
+participant "Channel Layer\n(Redis)" as channel
+participant "Seller Client\n(WebSocket)" as sellerClient
+
+== Connection Established ==
+buyer -> buyerClient: Open WebSocket\nws://.../ws/chat/?token=...
+buyerClient -> server: WebSocket handshake
+server -> server: Validate JWT token
+server -> buyerClient: Connection established
+
+seller -> sellerClient: Open WebSocket\nws://.../ws/chat/?token=...
+sellerClient -> server: WebSocket handshake
+server -> sellerClient: Connection established
+
+== Join Conversation ==
+buyer -> buyerClient: Join conversation
+buyerClient -> server: {"type": "join_conversation",\n"conversation_id": "conv-001"}
+server -> consumer: Route to ChatConsumer
+consumer -> consumer: Validate user permissions
+consumer -> buyerClient: {"type": "conversation_joined"}
+
+== Send Message ==
+buyer -> buyerClient: Type message & send
+buyerClient -> server: {"type": "send_message",\n"conversation_id": "conv-001",\n"content": "Hello"}
+
+server -> consumer: Route message
+consumer -> consumer: Validate message
+consumer -> service: send_message(conversation_id, sender_id, content)
+
+service -> db: BEGIN TRANSACTION
+service -> db: INSERT INTO messages\n(conversation_id, sender_id, content)
+db -> service: Return message_id
+service -> db: UPDATE conversations\nSET updated_at = NOW()
+service -> db: COMMIT TRANSACTION
+
+service -> consumer: Return Message object
+
+consumer -> buyerClient: {"type": "message_sent",\n"message": {...}}
+
+consumer -> channel: Broadcast message to conversation group
+
+alt Seller is online
+  channel -> sellerClient: Message event
+  sellerClient -> seller: Display new message
+  sellerClient -> server: {"type": "mark_read",\n"message_id": "msg-001"}
+  server -> consumer: Route read receipt
+  consumer -> db: UPDATE messages\nSET read_at = NOW()
+  consumer -> buyerClient: {"type": "read_receipt",\n"message_id": "msg-001"}
+else Seller is offline
+  note right: Message saved in DB\nWill be loaded when seller opens conversation
+end
+
+@enduml

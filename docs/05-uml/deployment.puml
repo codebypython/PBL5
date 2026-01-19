@@ -1,0 +1,87 @@
+@startuml Deployment Diagram - OldGoods Marketplace
+
+!define RECTANGLE node
+
+skinparam node {
+  BackgroundColor LightBlue
+  BorderColor DarkBlue
+}
+
+node "Internet" {
+}
+
+cloud "Cloud/Server" {
+  
+  node "Load Balancer\n(Nginx)" as nginx {
+    component "Reverse Proxy" as proxy
+    component "SSL Termination" as ssl
+  }
+  
+  node "Application Server" as appServer {
+    component "Gunicorn\n(WSGI)" as gunicorn
+    component "Django Application" as django
+    component "Uvicorn\n(ASGI)" as uvicorn
+    component "Django Channels" as channels
+  }
+  
+  node "Database Server" as dbServer {
+    database "PostgreSQL" as postgres {
+      component "oldgoods_db" as database
+    }
+  }
+  
+  node "Cache Server" as cacheServer {
+    component "Redis" as redis {
+      component "Channel Layer" as channelLayer
+    }
+  }
+  
+  node "File Storage" as fileStorage {
+    component "Local Storage\n/media/" as localStorage
+    component "S3 Storage\n(Optional)" as s3Storage
+  }
+}
+
+' Connections
+Internet --> nginx : "HTTPS (443)\nHTTP (80)"
+Internet --> nginx : "WebSocket (WS)"
+
+nginx --> gunicorn : "HTTP (8000)"
+nginx --> uvicorn : "WebSocket (8001)"
+
+gunicorn --> django
+uvicorn --> channels
+channels --> django
+
+django --> postgres : "SQL (5432)"
+django --> redis : "Redis Protocol (6379)"
+django --> localStorage : "File I/O"
+django --> s3Storage : "S3 API\n(Optional)"
+
+channels --> channelLayer
+
+' Notes
+note right of nginx
+  - Handles SSL/TLS
+  - Serves static files
+  - Routes to app servers
+end note
+
+note right of appServer
+  - Gunicorn: HTTP requests
+  - Uvicorn: WebSocket connections
+  - Multiple workers for scaling
+end note
+
+note right of dbServer
+  - ACID transactions
+  - Connection pooling
+  - Backup strategy
+end note
+
+note right of cacheServer
+  - Channel layer for WebSocket
+  - Can be used for caching
+end note
+
+@enduml

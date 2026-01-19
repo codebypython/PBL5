@@ -1,0 +1,45 @@
+@startuml Activity Diagram - Report Listing/User (UC16)
+
+start
+
+:User views listing or user profile;
+
+:User clicks "Report";
+
+:Display report form;
+
+:User selects report type:
+- SPAM
+- INAPPROPRIATE
+- SCAM
+- OTHER;
+
+:User enters description (optional);
+
+:Submit report;
+
+:Validate report data;
+
+if (Report type selected?) then (no)
+  :Display error: "Please select report type";
+  stop
+else (yes)
+endif
+
+if (User already reported this item?) then (yes)
+  :Display error: "You already reported this item";
+  stop
+else (no)
+endif
+
+:Create Report record with status PENDING;
+
+:Save to database;
+
+:Send notification to Admin;
+
+:Display success message: "Report submitted";
+
+stop
+
+@enduml

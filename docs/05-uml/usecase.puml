@@ -1,0 +1,93 @@
+@startuml Use Case Diagram - OldGoods Marketplace
+
+!define RECTANGLE class
+
+left to right direction
+
+actor Guest as guest
+actor "User\n(Buyer/Seller)" as user
+actor Admin as admin
+
+rectangle "OldGoods Marketplace" {
+  
+  package "Authentication" {
+    usecase UC01 as "UC01: Register"
+    usecase UC02 as "UC02: Login"
+    usecase UC03 as "UC03: Logout"
+  }
+  
+  package "Listing Management" {
+    usecase UC04 as "UC04: Create Listing"
+    usecase UC05 as "UC05: Update Listing"
+    usecase UC06 as "UC06: Delete Listing"
+    usecase UC07 as "UC07: Search & Filter\nListings"
+    usecase UC08 as "UC08: View Listing\nDetails"
+    usecase UC09 as "UC09: Add/Remove\nFavorite"
+  }
+  
+  package "Chat" {
+    usecase UC10 as "UC10: Send Message"
+    usecase UC11 as "UC11: Receive Message"
+  }
+  
+  package "Offers & Deals" {
+    usecase UC12 as "UC12: Make Offer"
+    usecase UC13 as "UC13: Accept Offer"
+    usecase UC14 as "UC14: Create Meetup"
+    usecase UC15 as "UC15: Update Deal\nStatus"
+  }
+  
+  package "Moderation" {
+    usecase UC16 as "UC16: Report\nListing/User"
+    usecase UC17 as "UC17: Block User"
+    usecase UC18 as "UC18: Admin View\nReports"
+    usecase UC19 as "UC19: Admin Resolve\nReport"
+    usecase UC20 as "UC20: Admin Ban\nUser"
+  }
+}
+
+' Guest use cases
+guest --> UC07
+guest --> UC08
+
+' User use cases
+user --> UC01
+user --> UC02
+user --> UC03
+user --> UC04
+user --> UC05
+user --> UC06
+user --> UC07
+user --> UC08
+user --> UC09
+user --> UC10
+user --> UC11
+user --> UC12
+user --> UC13
+user --> UC14
+user --> UC15
+user --> UC16
+user --> UC17
+
+' Admin use cases (includes all user use cases)
+admin --> UC18
+admin --> UC19
+admin --> UC20
+admin --> UC01
+admin --> UC02
+admin --> UC03
+admin --> UC04
+admin --> UC05
+admin --> UC06
+admin --> UC07
+admin --> UC08
+
+note right of UC10
+  Real-time via WebSocket
+end note
+
+note right of UC18
+  Admin only
+end note
+
+@enduml

@@ -1,0 +1,76 @@
+@startuml Activity Diagram - Offer to Deal Workflow (UC12-UC13)
+
+start
+
+:Buyer views listing;
+
+:Buyer clicks "Make Offer";
+
+:Buyer enters offer price and message;
+
+:Submit offer;
+
+:Validate offer data;
+
+if (Price > Listing price?) then (yes)
+  :Display error: "Price cannot exceed listing price";
+  stop
+else (no)
+endif
+
+if (Listing status = AVAILABLE?) then (no)
+  :Display error: "Listing not available";
+  stop
+else (yes)
+endif
+
+:Create Offer record with status PENDING;
+
+:Save to database;
+
+:Send notification to Seller;
+
+:Seller views offers for listing;
+
+:Seller clicks "Accept" on an offer;
+
+:Validate offer and listing;
+
+if (Offer already processed?) then (yes)
+  :Display error;
+  stop
+else (no)
+endif
+
+if (Listing still AVAILABLE?) then (no)
+  :Display error: "Listing not available";
+  stop
+else (yes)
+endif
+
+:Start database transaction;
+
+:Update Offer status to ACCEPTED;
+
+:Reject all other offers for this listing;
+
+:Create Deal record with status PENDING;
+
+:Update Listing status to RESERVED;
+
+:Commit transaction;
+
+if (Transaction successful?) then (no)
+  :Rollback transaction;
+  :Display error;
+  stop
+else (yes)
+endif
+
+:Send notification to Buyer;
+
+:Display success message;
+
+stop
+
+@enduml

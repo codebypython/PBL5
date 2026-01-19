@@ -1,0 +1,82 @@
+@startuml Component Diagram - OldGoods Marketplace
+
+package "Client Layer" {
+  [Web Browser] as browser
+  [Mobile Browser] as mobile
+}
+
+package "API Gateway" {
+  [Nginx] as nginx
+}
+
+package "Application Layer" {
+  package "Presentation" {
+    [REST API\n(Django REST Framework)] as restAPI
+    [WebSocket API\n(Django Channels)] as wsAPI
+  }
+  
+  package "Application Services" {
+    [AuthService] as authService
+    [ListingService] as listingService
+    [SearchService] as searchService
+    [ChatService] as chatService
+    [OfferService] as offerService
+    [DealService] as dealService
+    [ModerationService] as modService
+  }
+}
+
+package "Domain Layer" {
+  [User Domain] as userDomain
+  [Listing Domain] as listingDomain
+  [Conversation Domain] as conversationDomain
+  [Deal Domain] as dealDomain
+  [Moderation Domain] as moderationDomain
+}
+
+package "Infrastructure Layer" {
+  [Database\n(PostgreSQL)] as db
+  [File Storage\n(Local/S3)] as storage
+  [Channel Layer\n(Redis)] as redis
+  [Email Service] as email
+}
+
+' Connections
+browser --> nginx
+mobile --> nginx
+
+nginx --> restAPI
+nginx --> wsAPI
+
+restAPI --> authService
+restAPI --> listingService
+restAPI --> searchService
+restAPI --> offerService
+restAPI --> dealService
+restAPI --> modService
+
+wsAPI --> chatService
+
+authService --> userDomain
+listingService --> listingDomain
+searchService --> listingDomain
+chatService --> conversationDomain
+offerService --> dealDomain
+dealService --> dealDomain
+modService --> moderationDomain
+
+userDomain --> db
+listingDomain --> db
+conversationDomain --> db
+dealDomain --> db
+moderationDomain --> db
+
+listingService --> storage
+chatService --> redis
+wsAPI --> redis
+
+authService --> email
+dealService --> email
+modService --> email
+
+@enduml

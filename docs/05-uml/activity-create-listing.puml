@@ -1,0 +1,56 @@
+@startuml Activity Diagram - Create Listing (UC04)
+
+start
+
+:User accesses "Create Listing" page;
+
+:User fills in listing information:
+- Title
+- Description
+- Category
+- Price
+- Condition
+- Location;
+
+:User uploads images (1-5 images);
+
+:Submit form;
+
+:Validate input data;
+
+if (Validation successful?) then (no)
+  :Display validation errors;
+  stop
+else (yes)
+endif
+
+:Check if user is authenticated;
+
+if (User authenticated?) then (no)
+  :Redirect to login;
+  stop
+else (yes)
+endif
+
+:Save images to storage;
+
+:Create Listing record with status AVAILABLE;
+
+:Create ListingImage records;
+
+:Save to database (transaction);
+
+if (Save successful?) then (no)
+  :Rollback transaction;
+  :Display error message;
+  stop
+else (yes)
+endif
+
+:Return success response;
+
+:Redirect to listing detail page;
+
+stop
+
+@enduml

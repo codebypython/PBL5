@@ -1,0 +1,198 @@
+@startuml Domain Model - OldGoods Marketplace
+
+skinparam classAttributeIconSize 0
+
+package "User Aggregate" {
+  class User {
+    - id: UUID
+    - email: String
+    - password_hash: String
+    - role: Enum
+    - status: Enum
+    - created_at: DateTime
+    - updated_at: DateTime
+    --
+    + authenticate(password): Boolean
+    + is_active(): Boolean
+  }
+  
+  class Profile {
+    - id: UUID
+    - user_id: UUID
+    - full_name: String
+    - phone: String
+    - location: String
+    - avatar: String
+    - bio: Text
+    - created_at: DateTime
+    - updated_at: DateTime
+  }
+  
+  User ||--|| Profile : "has"
+}
+
+package "Listing Aggregate" {
+  class Category {
+    - id: UUID
+    - name: String
+    - slug: String
+    - description: Text
+    - parent_id: UUID
+    - created_at: DateTime
+    - updated_at: DateTime
+  }
+  
+  class Listing {
+    - id: UUID
+    - seller_id: UUID
+    - category_id: UUID
+    - title: String
+    - description: Text
+    - price: Decimal
+    - condition: Enum
+    - location: String
+    - status: Enum
+    - created_at: DateTime
+    - updated_at: DateTime
+    --
+    + can_edit(): Boolean
+    + update_status(new_status): void
+  }
+  
+  class ListingImage {
+    - id: UUID
+    - listing_id: UUID
+    - image: String
+    - order: Integer
+    - created_at: DateTime
+  }
+  
+  class Favorite {
+    - id: UUID
+    - user_id: UUID
+    - listing_id: UUID
+    - created_at: DateTime
+  }
+  
+  Category ||--o{ Listing : "categorizes"
+  User ||--o{ Listing : "sells"
+  Listing ||--o{ ListingImage : "has"
+  User ||--o{ Favorite : "favorites"
+  Listing ||--o{ Favorite : "favorited_by"
+}
+
+package "Conversation Aggregate" {
+  class Conversation {
+    - id: UUID
+    - listing_id: UUID
+    - created_at: DateTime
+    - updated_at: DateTime
+  }
+  
+  class ConversationMember {
+    - id: UUID
+    - conversation_id: UUID
+    - user_id: UUID
+    - joined_at: DateTime
+  }
+  
+  class Message {
+    - id: UUID
+    - conversation_id: UUID
+    - sender_id: UUID
+    - content: Text
+    - read_at: DateTime
+    - sent_at: DateTime
+    --
+    + mark_as_read(): void
+  }
+  
+  Conversation ||--o{ ConversationMember : "has"
+  Conversation ||--o{ Message : "contains"
+  User ||--o{ ConversationMember : "participates"
+  User ||--o{ Message : "sends"
+  Listing ||--o| Conversation : "discussed_in"
+}
+
+package "Deal Aggregate" {
+  class Offer {
+    - id: UUID
+    - listing_id: UUID
+    - buyer_id: UUID
+    - price: Decimal
+    - message: Text
+    - status: Enum
+    - created_at: DateTime
+    - updated_at: DateTime
+    --
+    + can_accept(): Boolean
+    + accept(): Deal
+  }
+  
+  class Deal {
+    - id: UUID
+    - listing_id: UUID
+    - buyer_id: UUID
+    - seller_id: UUID
+    - offer_id: UUID
+    - status: Enum
+    - created_at: DateTime
+    - updated_at: DateTime
+    --
+    + complete(): void
+    + cancel(): void
+  }
+  
+  class Meetup {
+    - id: UUID
+    - deal_id: UUID
+    - scheduled_at: DateTime
+    - location: String
+    - notes: Text
+    - created_at: DateTime
+  }
+  
+  Listing ||--o{ Offer : "receives"
+  User ||--o{ Offer : "makes"
+  Offer ||--o| Deal : "creates"
+  Deal ||--o{ Meetup : "schedules"
+  User ||--o{ Deal : "buys"
+  User ||--o{ Deal : "sells"
+}
+
+package "Moderation Aggregate" {
+  class Report {
+    - id: UUID
+    - reporter_id: UUID
+    - reported_listing_id: UUID
+    - reported_user_id: UUID
+    - report_type: Enum
+    - description: Text
+    - status: Enum
+    - resolved_by_id: UUID
+    - resolved_at: DateTime
+    - created_at: DateTime
+    --
+    + resolve(action): void
+  }
+  
+  class Block {
+    - id: UUID
+    - blocker_id: UUID
+    - blocked_user_id: UUID
+    - created_at: DateTime
+  }
+  
+  User ||--o{ Report : "reports"
+  User ||--o{ Report : "reported_as"
+  Listing ||--o{ Report : "reported"
+  User ||--o{ Block : "blocks"
+  User ||--o{ Block : "blocked_by"
+}
+
+' Relationships
+User ||--o{ Listing : "sells"
+User ||--o{ Offer : "makes"
+User ||--o{ Deal : "participates"
+
+@enduml

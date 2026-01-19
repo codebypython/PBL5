@@ -1,0 +1,85 @@
+@startuml Sequence Diagram - Offer to Deal (UC12-UC13)
+
+actor Buyer as buyer
+actor Seller as seller
+participant "Buyer Client" as buyerClient
+participant "API Server" as api
+participant "OfferService" as offerService
+participant "DealService" as dealService
+participant "NotificationService" as notify
+participant "Database\n(PostgreSQL)" as db
+
+== Buyer Makes Offer ==
+buyer -> buyerClient: View listing & click "Make Offer"
+buyer -> buyerClient: Enter price & message
+buyerClient -> api: POST /api/v1/offers\n{"listing_id": "...", "price": 23000000}
+
+api -> api: Authenticate buyer
+api -> api: Validate request
+
+api -> offerService: create_offer(listing_id, buyer_id, price, message)
+
+offerService -> db: SELECT listing WHERE id = listing_id\nAND status = 'AVAILABLE'
+
+alt Listing not available
+  offerService -> api: Error: Listing not available
+  api -> buyerClient: 400 Bad Request
+else Listing available
+  offerService -> db: Check if buyer already has pending offer
+  
+  alt Already has pending offer
+    offerService -> api: Error: Already has pending offer
+    api -> buyerClient: 400 Bad Request
+  else No pending offer
+    offerService -> db: BEGIN TRANSACTION
+    offerService -> db: INSERT INTO offers\n(listing_id, buyer_id, price, status='PENDING')
+    db -> offerService: Return offer_id
+    offerService -> db: COMMIT TRANSACTION
+    
+    offerService -> notify: send_notification(seller_id, "New offer received")
+    notify -> seller: Push notification
+    
+    offerService -> api: Return Offer object
+    api -> buyerClient: 201 Created\n{offer data}
+  end
+end
+
+== Seller Accepts Offer ==
+seller -> seller: View offers for listing
+seller -> seller: Click "Accept" on offer
+seller -> api: POST /api/v1/offers/{offer_id}/accept
+
+api -> api: Authenticate seller
+api -> api: Verify seller owns listing
+
+api -> dealService: accept_offer_and_create_deal(offer_id, seller_id)
+
+dealService -> db: BEGIN TRANSACTION
+
+dealService -> db: SELECT offer WHERE id = offer_id\nAND status = 'PENDING'
+dealService -> db: SELECT listing WHERE id = listing.listing_id\nAND status = 'AVAILABLE'
+
+alt Offer or listing invalid
+  dealService -> db: ROLLBACK TRANSACTION
+  dealService -> api: Error
+  api -> seller: 400 Bad Request
+else Valid
+  dealService -> db: UPDATE offers\nSET status = 'ACCEPTED'\nWHERE id = offer_id
+  
+  dealService -> db: UPDATE offers\nSET status = 'REJECTED'\nWHERE listing_id = listing_id\nAND id != offer_id\nAND status = 'PENDING'
+  
+  dealService -> db: INSERT INTO deals\n(listing_id, buyer_id, seller_id, offer_id, status='PENDING')
+  db -> dealService: Return deal_id
+  
+  dealService -> db: UPDATE listings\nSET status = 'RESERVED'\nWHERE id = listing_id
+  
+  dealService -> db: COMMIT TRANSACTION
+  
+  dealService -> notify: send_notification(buyer_id, "Your offer was accepted!")
+  notify -> buyer: Push notification
+  
+  dealService -> api: Return Deal object
+  api -> seller: 200 OK\n{deal data}
+end
+
+@enduml

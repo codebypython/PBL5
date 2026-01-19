@@ -1,0 +1,57 @@
+@startuml Sequence Diagram - Create Listing (UC04)
+
+actor User as user
+participant "Web Client" as client
+participant "API Gateway\n(Nginx)" as nginx
+participant "Django View\n(ListingViewSet)" as view
+participant "ListingService" as service
+participant "FileStorage" as storage
+participant "Database\n(PostgreSQL)" as db
+
+user -> client: Fill form & upload images
+user -> client: Click "Submit"
+
+client -> nginx: POST /api/v1/listings/\n(multipart/form-data)
+
+nginx -> view: Forward request
+
+view -> view: Authenticate user\n(verify JWT token)
+
+alt Not authenticated
+  view -> client: 401 Unauthorized
+  client -> user: Show error
+else Authenticated
+  view -> view: Validate request data
+  
+  alt Validation failed
+    view -> client: 400 Bad Request\n(validation errors)
+    client -> user: Show validation errors
+  else Validation passed
+    view -> service: create_listing(data, images)
+    
+    service -> storage: save_images(images)
+    storage -> storage: Validate file types & sizes
+    storage -> storage: Save files to disk/S3
+    storage -> service: Return file paths
+    
+    service -> db: BEGIN TRANSACTION
+    
+    service -> db: INSERT INTO listings\n(title, description, price, ...)
+    db -> service: Return listing_id
+    
+    loop For each image
+      service -> db: INSERT INTO listing_images\n(listing_id, image_path, order)
+      db -> service: Confirm
+    end
+    
+    service -> db: COMMIT TRANSACTION
+    db -> service: Transaction committed
+    
+    service -> view: Return Listing object
+    
+    view -> client: 201 Created\n(listing data)
+    client -> user: Show success & redirect
+  end
+end
+
+@enduml
